@@ -23,35 +23,37 @@ Navigate to the project directory
 cd tig-stack
 ```
 
-Convenience command to start everything in one single step:
+Run this command to create the .env file and generate a new admin token for InfluxDB:
 
 ```bash
-[ ! -f .env ] && cp .env.example .env; \
+[ ! -f .env ] && cp .env.example .env
 var="DOCKER_INFLUXDB_INIT_ADMIN_TOKEN" \
 && new_token=$(openssl rand -hex 32) \
 && grep -q "^${var}=" .env \
 && sed -i "s/^${var}=.*/${var}=$new_token/" .env \
-|| echo "${var}=$new_token" >> .env \
-&& docker compose up -d
+|| echo "${var}=$new_token" >> .env
 ```
 
-Change the environment variables define in `.env` that are used to setup and deploy the stack
+(Optional) Change the environment variables define in `.env` that are used to setup and deploy the stack
 ```bash
+├── influxdb/
+│   ├── entrypoint.sh
 ├── telegraf/
+│   ├── telegraf.conf
 ├── .env         <---
 ├── docker-compose.yml
-├── entrypoint.sh
 └── ...
 ```
 
-Customize the `telegraf.conf` file which will be mounted to the container as a persistent volume
+(Optional) Customize the `telegraf.conf` file which will be mounted to the container as a persistent volume
 
 ```bash
+├── influxdb/
+│   ├── entrypoint.sh
 ├── telegraf/
 │   ├── telegraf.conf <---
 ├── .env
 ├── docker-compose.yml
-├── entrypoint.sh
 └── ...
 ```
 
@@ -59,13 +61,14 @@ Start the services
 ```bash
 docker compose up -d
 ```
+
 ## Docker Images Used (Official & Verified)
 
-[**Telegraf**](https://hub.docker.com/_/telegraf) / `1.19`
+[**Telegraf**](https://hub.docker.com/_/telegraf) / `1.34.4-alpine`
 
-[**InfluxDB**](https://hub.docker.com/_/influxdb) / `2.1.1`
+[**InfluxDB**](https://hub.docker.com/_/influxdb) / `2.7.12-alpine`
 
-[**Grafana-OSS**](https://hub.docker.com/r/grafana/grafana-oss) / `8.4.3`
+[**Grafana-OSS**](https://hub.docker.com/r/grafana/grafana-oss) / `12.2.0-17142428006`
 
 
 
