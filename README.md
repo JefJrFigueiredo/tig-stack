@@ -62,6 +62,8 @@ Start the services
 docker compose up -d
 ```
 
+Access the Grafana portal in http://localhost:3000 (or the GRAFANA_PORT you set in the .env file), authenticate with login: `admin` and password: `admin` , change the password, go to Dashboards > System metrics and see the metrics in real-time. 
+
 ## Docker Images Used (Official & Verified)
 
 [**Telegraf**](https://hub.docker.com/_/telegraf) / `1.34.4-alpine`

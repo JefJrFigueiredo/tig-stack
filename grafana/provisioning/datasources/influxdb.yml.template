@@ -2,6 +2,7 @@ apiVersion: 1
 
 datasources:
   - name: InfluxDB
+    uid: influxdb
     type: influxdb
     access: proxy
     url: http://${DOCKER_INFLUXDB_INIT_HOST}:${DOCKER_INFLUXDB_INIT_PORT}
