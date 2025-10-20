@@ -24,6 +24,10 @@ services:
     image: grafana/grafana-oss:12.2.0-17142428006
     volumes:
       - grafana-storage:/var/lib/grafana:rw
+      - ./grafana:/grafana:ro
+    env_file:
+      - .env
+    entrypoint: ["/grafana/entrypoint.sh"]
     depends_on:
       - influxdb
     ports:
