@@ -23,6 +23,18 @@ Navigate to the project directory
 cd tig-stack
 ```
 
+Convenience command to start everything in one single step:
+
+```bash
+[ ! -f .env ] && cp .env.example .env; \
+var="DOCKER_INFLUXDB_INIT_ADMIN_TOKEN" \
+&& new_token=$(openssl rand -hex 32) \
+&& grep -q "^${var}=" .env \
+&& sed -i "s/^${var}=.*/${var}=$new_token/" .env \
+|| echo "${var}=$new_token" >> .env \
+&& docker compose up -d
+```
+
 Change the environment variables define in `.env` that are used to setup and deploy the stack
 ```bash
 ├── telegraf/
@@ -45,7 +57,7 @@ Customize the `telegraf.conf` file which will be mounted to the container as a p
 
 Start the services
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 ## Docker Images Used (Official & Verified)
 
