@@ -21,7 +21,7 @@ INFLUX_PID=$!
 # Wait for InfluxDB to be ready
 echo "Waiting for InfluxDB to start..."
 for i in {1..30}; do
-    if influx ping --host http://localhost:8086 &>/dev/null; then
+    if influx ping --host http://localhost:${DOCKER_INFLUXDB_INIT_PORT} &>/dev/null; then
         echo "InfluxDB is ready!"
         break
     fi
@@ -29,50 +29,70 @@ for i in {1..30}; do
     sleep 2
 done
 
-# Conducts initial InfluxDB setup using the CLI
-echo "Setting up InfluxDB..."
-influx setup --skip-verify \
-    --bucket    ${DOCKER_INFLUXDB_INIT_BUCKET} \
-    --retention ${DOCKER_INFLUXDB_INIT_RETENTION} \
-    --token     ${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN} \
-    --org       ${DOCKER_INFLUXDB_INIT_ORG} \
-    --username  ${DOCKER_INFLUXDB_INIT_USERNAME} \
-    --password  ${DOCKER_INFLUXDB_INIT_PASSWORD} \
-    --host      http://localhost:8086 \
-    --force
+# Check if InfluxDB needs initial setup
+# The /api/v2/setup endpoint returns {"allowed":false} if already initialized
+SETUP_ALLOWED=$(curl -s http://localhost:${DOCKER_INFLUXDB_INIT_PORT}/api/v2/setup | grep -o '"allowed":[^,}]*' | cut -d':' -f2 | tr -d ' ')
 
-# Create downsampling buckets
-echo "Creating downsampling buckets..."
-influx bucket create \
-    --name "${DOCKER_INFLUXDB_INIT_BUCKET}_20s" \
-    --org ${DOCKER_INFLUXDB_INIT_ORG} \
-    --retention 1d \
-    --token ${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN} \
-    --host http://localhost:8086 || echo "Bucket _20s already exists"
+if [ "$SETUP_ALLOWED" = "false" ]; then
+    echo "InfluxDB already initialized. Skipping setup..."
+else
+    # Conducts initial InfluxDB setup using the CLI
+    echo "Setting up InfluxDB..."
+    influx setup --skip-verify \
+        --bucket    ${DOCKER_INFLUXDB_INIT_BUCKET} \
+        --retention ${DOCKER_INFLUXDB_INIT_RETENTION} \
+        --token     ${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN} \
+        --org       ${DOCKER_INFLUXDB_INIT_ORG} \
+        --username  ${DOCKER_INFLUXDB_INIT_USERNAME} \
+        --password  ${DOCKER_INFLUXDB_INIT_PASSWORD} \
+        --host      http://localhost:${DOCKER_INFLUXDB_INIT_PORT} \
+        --force
 
-influx bucket create \
-    --name "${DOCKER_INFLUXDB_INIT_BUCKET}_1min" \
-    --org ${DOCKER_INFLUXDB_INIT_ORG} \
-    --retention 7d \
-    --token ${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN} \
-    --host http://localhost:8086 || echo "Bucket _1min already exists"
-
-# Create downsampling tasks
-echo "Creating downsampling tasks..."
-if [ -f /influxdb/task_20s.flux ]; then
-    influx task create \
+    # Create downsampling buckets
+    echo "Creating downsampling buckets..."
+    influx bucket create \
+        --name "${DOCKER_INFLUXDB_INIT_BUCKET}_20s" \
         --org ${DOCKER_INFLUXDB_INIT_ORG} \
+        --retention 1d \
         --token ${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN} \
-        --file /influxdb/task_20s.flux \
-        --host http://localhost:8086 || echo "Task 20s already exists"
-fi
+        --host http://localhost:${DOCKER_INFLUXDB_INIT_PORT} || echo "Bucket _20s already exists"
 
-if [ -f /influxdb/task_1min.flux ]; then
-    influx task create \
+    influx bucket create \
+        --name "${DOCKER_INFLUXDB_INIT_BUCKET}_1min" \
         --org ${DOCKER_INFLUXDB_INIT_ORG} \
+        --retention 7d \
         --token ${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN} \
-        --file /influxdb/task_1min.flux \
-        --host http://localhost:8086 || echo "Task 1min already exists"
+        --host http://localhost:${DOCKER_INFLUXDB_INIT_PORT} || echo "Bucket _1min already exists"
+
+    # Create downsampling tasks
+    echo "Creating downsampling tasks..."
+    if [ -f /influxdb/task_20s.flux ]; then
+        # Substitute bucket and org names in task file
+        sed -e "s/INIT_ORG_NAME/${DOCKER_INFLUXDB_INIT_ORG}/g" \
+            -e "s/INIT_BUCKET_NAME_20s/${DOCKER_INFLUXDB_INIT_BUCKET}_20s/g" \
+            -e "s/INIT_BUCKET_NAME/${DOCKER_INFLUXDB_INIT_BUCKET}/g" \
+            /influxdb/task_20s.flux > /tmp/task_20s.flux
+        
+        influx task create \
+            --org ${DOCKER_INFLUXDB_INIT_ORG} \
+            --token ${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN} \
+            --file /tmp/task_20s.flux \
+            --host http://localhost:${DOCKER_INFLUXDB_INIT_PORT} || echo "Task 20s already exists"
+    fi
+
+    if [ -f /influxdb/task_1min.flux ]; then
+        # Substitute bucket and org names in task file
+        sed -e "s/INIT_ORG_NAME/${DOCKER_INFLUXDB_INIT_ORG}/g" \
+            -e "s/INIT_BUCKET_NAME_1min/${DOCKER_INFLUXDB_INIT_BUCKET}_1min/g" \
+            -e "s/INIT_BUCKET_NAME_20s/${DOCKER_INFLUXDB_INIT_BUCKET}_20s/g" \
+            /influxdb/task_1min.flux > /tmp/task_1min.flux
+        
+        influx task create \
+            --org ${DOCKER_INFLUXDB_INIT_ORG} \
+            --token ${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN} \
+            --file /tmp/task_1min.flux \
+            --host http://localhost:${DOCKER_INFLUXDB_INIT_PORT} || echo "Task 1min already exists"
+    fi
 fi
 
 echo "InfluxDB initialization complete!"

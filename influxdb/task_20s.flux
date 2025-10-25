@@ -4,9 +4,9 @@ option task = {
   offset: 5s
 }
 
-from(bucket: "changeme")
+from(bucket: "INIT_BUCKET_NAME")
   |> range(start: -task.every)
   |> filter(fn: (r) => r["_measurement"] != "" and r["_field"] != "")
   |> filter(fn: (r) => r["_field"] != "uptime_format")
-  |> aggregateWindow(every: 20s, fn: mean, createEmpty: false)
-  |> to(bucket: "changeme_20s", org: "changeme")
+  |> aggregateWindow(every: 20s, fn: mean, createEmpty: false, offset: 0s)
+  |> to(bucket: "INIT_BUCKET_NAME_20s", org: "INIT_ORG_NAME")
