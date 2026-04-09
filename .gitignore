@@ -1,1 +1,5 @@
 .env
+docker-compose.override.yml
+telegraf/telegraf.d/
+grafana/dashboards.d/
+influxdb/influxdb.d/

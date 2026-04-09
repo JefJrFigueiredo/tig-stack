@@ -1,0 +1,344 @@
+{
+  "title": "System Metrics",
+  "tags": ["telegraf", "system"],
+  "timezone": "browser",
+  "schemaVersion": 16,
+  "version": 14,
+  "refresh": "5s",
+  "uid": "system-metrics",
+  "time": {
+    "from": "now-5m",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "CPU Usage (%)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "timeAgoNs = uint(v: now()) - uint(v: v.timeRangeStart)\nbucket = if timeAgoNs <= uint(v: 3h) then \"INIT_BUCKET_NAME\"\n  else if timeAgoNs <= uint(v: 36h) then \"INIT_BUCKET_NAME_1min\"\n  else if timeAgoNs <= uint(v: 7d) then \"INIT_BUCKET_NAME_5min\"\n  else if timeAgoNs <= uint(v: 90d) then \"INIT_BUCKET_NAME_1h\"\n  else if timeAgoNs <= uint(v: 365d) then \"INIT_BUCKET_NAME_4h\"\n  else if timeAgoNs <= uint(v: 2190d) then \"INIT_BUCKET_NAME_1d\"\n  else \"INIT_BUCKET_NAME_1w\"\nisRaw = timeAgoNs <= uint(v: 3h)\nfield = if isRaw then \"usage_idle\" else \"usage_idle_mean\"\n\nfrom(bucket: bucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"cpu\")\n  |> filter(fn: (r) => r[\"_field\"] == field)\n  |> filter(fn: (r) => r[\"cpu\"] == \"cpu-total\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({ r with _value: 100.0 - r._value }))\n  |> set(key: \"_field\", value: \"cpu_mean\")"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "timeAgoNs = uint(v: now()) - uint(v: v.timeRangeStart)\nbucket = if timeAgoNs <= uint(v: 3h) then \"INIT_BUCKET_NAME\"\n  else if timeAgoNs <= uint(v: 36h) then \"INIT_BUCKET_NAME_1min\"\n  else if timeAgoNs <= uint(v: 7d) then \"INIT_BUCKET_NAME_5min\"\n  else if timeAgoNs <= uint(v: 90d) then \"INIT_BUCKET_NAME_1h\"\n  else if timeAgoNs <= uint(v: 365d) then \"INIT_BUCKET_NAME_4h\"\n  else if timeAgoNs <= uint(v: 2190d) then \"INIT_BUCKET_NAME_1d\"\n  else \"INIT_BUCKET_NAME_1w\"\nisRaw = timeAgoNs <= uint(v: 3h)\nfield = if isRaw then \"usage_idle\" else \"usage_idle_min\"\n\nfrom(bucket: bucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"cpu\")\n  |> filter(fn: (r) => r[\"_field\"] == field)\n  |> filter(fn: (r) => r[\"cpu\"] == \"cpu-total\")\n  |> aggregateWindow(every: v.windowPeriod, fn: min, createEmpty: false)\n  |> map(fn: (r) => ({ r with _value: 100.0 - r._value }))\n  |> set(key: \"_field\", value: \"cpu_max\")"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "timeAgoNs = uint(v: now()) - uint(v: v.timeRangeStart)\nbucket = if timeAgoNs <= uint(v: 3h) then \"INIT_BUCKET_NAME\"\n  else if timeAgoNs <= uint(v: 36h) then \"INIT_BUCKET_NAME_1min\"\n  else if timeAgoNs <= uint(v: 7d) then \"INIT_BUCKET_NAME_5min\"\n  else if timeAgoNs <= uint(v: 90d) then \"INIT_BUCKET_NAME_1h\"\n  else if timeAgoNs <= uint(v: 365d) then \"INIT_BUCKET_NAME_4h\"\n  else if timeAgoNs <= uint(v: 2190d) then \"INIT_BUCKET_NAME_1d\"\n  else \"INIT_BUCKET_NAME_1w\"\nisRaw = timeAgoNs <= uint(v: 3h)\nfield = if isRaw then \"usage_idle\" else \"usage_idle_max\"\n\nfrom(bucket: bucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"cpu\")\n  |> filter(fn: (r) => r[\"_field\"] == field)\n  |> filter(fn: (r) => r[\"cpu\"] == \"cpu-total\")\n  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)\n  |> map(fn: (r) => ({ r with _value: 100.0 - r._value }))\n  |> set(key: \"_field\", value: \"cpu_min\")"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "custom": {
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "cpu_mean" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 2 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "cpu_max" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 1 },
+              { "id": "custom.fillBelowTo", "value": "cpu_min" },
+              { "id": "custom.fillOpacity", "value": 20 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "cpu_min" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 1 }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "title": "Memory Usage (%)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "timeAgoNs = uint(v: now()) - uint(v: v.timeRangeStart)\nbucket = if timeAgoNs <= uint(v: 3h) then \"INIT_BUCKET_NAME\"\n  else if timeAgoNs <= uint(v: 36h) then \"INIT_BUCKET_NAME_1min\"\n  else if timeAgoNs <= uint(v: 7d) then \"INIT_BUCKET_NAME_5min\"\n  else if timeAgoNs <= uint(v: 90d) then \"INIT_BUCKET_NAME_1h\"\n  else if timeAgoNs <= uint(v: 365d) then \"INIT_BUCKET_NAME_4h\"\n  else if timeAgoNs <= uint(v: 2190d) then \"INIT_BUCKET_NAME_1d\"\n  else \"INIT_BUCKET_NAME_1w\"\nisRaw = timeAgoNs <= uint(v: 3h)\nfield = if isRaw then \"used_percent\" else \"used_percent_mean\"\n\nfrom(bucket: bucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"mem\")\n  |> filter(fn: (r) => r[\"_field\"] == field)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> set(key: \"_field\", value: \"mem_mean\")"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "timeAgoNs = uint(v: now()) - uint(v: v.timeRangeStart)\nbucket = if timeAgoNs <= uint(v: 3h) then \"INIT_BUCKET_NAME\"\n  else if timeAgoNs <= uint(v: 36h) then \"INIT_BUCKET_NAME_1min\"\n  else if timeAgoNs <= uint(v: 7d) then \"INIT_BUCKET_NAME_5min\"\n  else if timeAgoNs <= uint(v: 90d) then \"INIT_BUCKET_NAME_1h\"\n  else if timeAgoNs <= uint(v: 365d) then \"INIT_BUCKET_NAME_4h\"\n  else if timeAgoNs <= uint(v: 2190d) then \"INIT_BUCKET_NAME_1d\"\n  else \"INIT_BUCKET_NAME_1w\"\nisRaw = timeAgoNs <= uint(v: 3h)\nfield = if isRaw then \"used_percent\" else \"used_percent_max\"\n\nfrom(bucket: bucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"mem\")\n  |> filter(fn: (r) => r[\"_field\"] == field)\n  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)\n  |> set(key: \"_field\", value: \"mem_max\")"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "timeAgoNs = uint(v: now()) - uint(v: v.timeRangeStart)\nbucket = if timeAgoNs <= uint(v: 3h) then \"INIT_BUCKET_NAME\"\n  else if timeAgoNs <= uint(v: 36h) then \"INIT_BUCKET_NAME_1min\"\n  else if timeAgoNs <= uint(v: 7d) then \"INIT_BUCKET_NAME_5min\"\n  else if timeAgoNs <= uint(v: 90d) then \"INIT_BUCKET_NAME_1h\"\n  else if timeAgoNs <= uint(v: 365d) then \"INIT_BUCKET_NAME_4h\"\n  else if timeAgoNs <= uint(v: 2190d) then \"INIT_BUCKET_NAME_1d\"\n  else \"INIT_BUCKET_NAME_1w\"\nisRaw = timeAgoNs <= uint(v: 3h)\nfield = if isRaw then \"used_percent\" else \"used_percent_min\"\n\nfrom(bucket: bucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"mem\")\n  |> filter(fn: (r) => r[\"_field\"] == field)\n  |> aggregateWindow(every: v.windowPeriod, fn: min, createEmpty: false)\n  |> set(key: \"_field\", value: \"mem_min\")"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "custom": {
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "mem_mean" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 2 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "mem_max" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 1 },
+              { "id": "custom.fillBelowTo", "value": "mem_min" },
+              { "id": "custom.fillOpacity", "value": 20 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "mem_min" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 1 }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "title": "Disk Usage (/)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "timeAgoNs = uint(v: now()) - uint(v: v.timeRangeStart)\nbucket = if timeAgoNs <= uint(v: 3h) then \"INIT_BUCKET_NAME\"\n  else if timeAgoNs <= uint(v: 36h) then \"INIT_BUCKET_NAME_1min\"\n  else if timeAgoNs <= uint(v: 7d) then \"INIT_BUCKET_NAME_5min\"\n  else if timeAgoNs <= uint(v: 90d) then \"INIT_BUCKET_NAME_1h\"\n  else if timeAgoNs <= uint(v: 365d) then \"INIT_BUCKET_NAME_4h\"\n  else if timeAgoNs <= uint(v: 2190d) then \"INIT_BUCKET_NAME_1d\"\n  else \"INIT_BUCKET_NAME_1w\"\nisRaw = timeAgoNs <= uint(v: 3h)\nfield = if isRaw then \"used_percent\" else \"used_percent_mean\"\n\nfrom(bucket: bucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"disk\")\n  |> filter(fn: (r) => r[\"_field\"] == field)\n  |> filter(fn: (r) => r[\"path\"] == \"/\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> set(key: \"_field\", value: \"disk_mean\")"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "timeAgoNs = uint(v: now()) - uint(v: v.timeRangeStart)\nbucket = if timeAgoNs <= uint(v: 3h) then \"INIT_BUCKET_NAME\"\n  else if timeAgoNs <= uint(v: 36h) then \"INIT_BUCKET_NAME_1min\"\n  else if timeAgoNs <= uint(v: 7d) then \"INIT_BUCKET_NAME_5min\"\n  else if timeAgoNs <= uint(v: 90d) then \"INIT_BUCKET_NAME_1h\"\n  else if timeAgoNs <= uint(v: 365d) then \"INIT_BUCKET_NAME_4h\"\n  else if timeAgoNs <= uint(v: 2190d) then \"INIT_BUCKET_NAME_1d\"\n  else \"INIT_BUCKET_NAME_1w\"\nisRaw = timeAgoNs <= uint(v: 3h)\nfield = if isRaw then \"used_percent\" else \"used_percent_max\"\n\nfrom(bucket: bucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"disk\")\n  |> filter(fn: (r) => r[\"_field\"] == field)\n  |> filter(fn: (r) => r[\"path\"] == \"/\")\n  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)\n  |> set(key: \"_field\", value: \"disk_max\")"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "timeAgoNs = uint(v: now()) - uint(v: v.timeRangeStart)\nbucket = if timeAgoNs <= uint(v: 3h) then \"INIT_BUCKET_NAME\"\n  else if timeAgoNs <= uint(v: 36h) then \"INIT_BUCKET_NAME_1min\"\n  else if timeAgoNs <= uint(v: 7d) then \"INIT_BUCKET_NAME_5min\"\n  else if timeAgoNs <= uint(v: 90d) then \"INIT_BUCKET_NAME_1h\"\n  else if timeAgoNs <= uint(v: 365d) then \"INIT_BUCKET_NAME_4h\"\n  else if timeAgoNs <= uint(v: 2190d) then \"INIT_BUCKET_NAME_1d\"\n  else \"INIT_BUCKET_NAME_1w\"\nisRaw = timeAgoNs <= uint(v: 3h)\nfield = if isRaw then \"used_percent\" else \"used_percent_min\"\n\nfrom(bucket: bucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"disk\")\n  |> filter(fn: (r) => r[\"_field\"] == field)\n  |> filter(fn: (r) => r[\"path\"] == \"/\")\n  |> aggregateWindow(every: v.windowPeriod, fn: min, createEmpty: false)\n  |> set(key: \"_field\", value: \"disk_min\")"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "custom": {
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "disk_mean" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 2 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "disk_max" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 1 },
+              { "id": "custom.fillBelowTo", "value": "disk_min" },
+              { "id": "custom.fillOpacity", "value": 20 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "disk_min" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 1 }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "title": "System Load Average (1m, 5m, 15m)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "import \"strings\"\n\ntimeAgoNs = uint(v: now()) - uint(v: v.timeRangeStart)\nbucket = if timeAgoNs <= uint(v: 3h) then \"INIT_BUCKET_NAME\"\n  else if timeAgoNs <= uint(v: 36h) then \"INIT_BUCKET_NAME_1min\"\n  else if timeAgoNs <= uint(v: 7d) then \"INIT_BUCKET_NAME_5min\"\n  else if timeAgoNs <= uint(v: 90d) then \"INIT_BUCKET_NAME_1h\"\n  else if timeAgoNs <= uint(v: 365d) then \"INIT_BUCKET_NAME_4h\"\n  else if timeAgoNs <= uint(v: 2190d) then \"INIT_BUCKET_NAME_1d\"\n  else \"INIT_BUCKET_NAME_1w\"\nisRaw = timeAgoNs <= uint(v: 3h)\nfieldSuffix = if isRaw then \"\" else \"_mean\"\n\nfrom(bucket: bucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"system\")\n  |> filter(fn: (r) => r[\"_field\"] == \"load1\" + fieldSuffix\n       or r[\"_field\"] == \"load5\" + fieldSuffix\n       or r[\"_field\"] == \"load15\" + fieldSuffix)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({ r with _field: if strings.hasSuffix(v: r._field, suffix: \"_mean\")\n       then strings.trimSuffix(v: r._field, suffix: \"_mean\")\n       else r._field }))"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "import \"strings\"\n\ntimeAgoNs = uint(v: now()) - uint(v: v.timeRangeStart)\nbucket = if timeAgoNs <= uint(v: 3h) then \"INIT_BUCKET_NAME\"\n  else if timeAgoNs <= uint(v: 36h) then \"INIT_BUCKET_NAME_1min\"\n  else if timeAgoNs <= uint(v: 7d) then \"INIT_BUCKET_NAME_5min\"\n  else if timeAgoNs <= uint(v: 90d) then \"INIT_BUCKET_NAME_1h\"\n  else if timeAgoNs <= uint(v: 365d) then \"INIT_BUCKET_NAME_4h\"\n  else if timeAgoNs <= uint(v: 2190d) then \"INIT_BUCKET_NAME_1d\"\n  else \"INIT_BUCKET_NAME_1w\"\nisRaw = timeAgoNs <= uint(v: 3h)\nfieldSuffix = if isRaw then \"\" else \"_max\"\n\nfrom(bucket: bucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"system\")\n  |> filter(fn: (r) => r[\"_field\"] == \"load1\" + fieldSuffix\n       or r[\"_field\"] == \"load5\" + fieldSuffix\n       or r[\"_field\"] == \"load15\" + fieldSuffix)\n  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)\n  |> map(fn: (r) => ({ r with _field: if strings.hasSuffix(v: r._field, suffix: \"_max\")\n       then strings.trimSuffix(v: r._field, suffix: \"_max\") + \"_max\"\n       else r._field + \"_max\" }))"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "import \"strings\"\n\ntimeAgoNs = uint(v: now()) - uint(v: v.timeRangeStart)\nbucket = if timeAgoNs <= uint(v: 3h) then \"INIT_BUCKET_NAME\"\n  else if timeAgoNs <= uint(v: 36h) then \"INIT_BUCKET_NAME_1min\"\n  else if timeAgoNs <= uint(v: 7d) then \"INIT_BUCKET_NAME_5min\"\n  else if timeAgoNs <= uint(v: 90d) then \"INIT_BUCKET_NAME_1h\"\n  else if timeAgoNs <= uint(v: 365d) then \"INIT_BUCKET_NAME_4h\"\n  else if timeAgoNs <= uint(v: 2190d) then \"INIT_BUCKET_NAME_1d\"\n  else \"INIT_BUCKET_NAME_1w\"\nisRaw = timeAgoNs <= uint(v: 3h)\nfieldSuffix = if isRaw then \"\" else \"_min\"\n\nfrom(bucket: bucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"system\")\n  |> filter(fn: (r) => r[\"_field\"] == \"load1\" + fieldSuffix\n       or r[\"_field\"] == \"load5\" + fieldSuffix\n       or r[\"_field\"] == \"load15\" + fieldSuffix)\n  |> aggregateWindow(every: v.windowPeriod, fn: min, createEmpty: false)\n  |> map(fn: (r) => ({ r with _field: if strings.hasSuffix(v: r._field, suffix: \"_min\")\n       then strings.trimSuffix(v: r._field, suffix: \"_min\") + \"_min\"\n       else r._field + \"_min\" }))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "load1_max" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 1 },
+              { "id": "custom.fillBelowTo", "value": "load1_min" },
+              { "id": "custom.fillOpacity", "value": 20 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "load1_min" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 1 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "load5_max" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 1 },
+              { "id": "custom.fillBelowTo", "value": "load5_min" },
+              { "id": "custom.fillOpacity", "value": 20 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "load5_min" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 1 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "load15_max" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 1 },
+              { "id": "custom.fillBelowTo", "value": "load15_min" },
+              { "id": "custom.fillOpacity", "value": 20 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "load15_min" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 1 }
+            ]
+          }
+        ]
+      }
+    }
+    ,
+    {
+      "id": 5,
+      "title": "Network Receive (bytes/sec)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "timeAgoNs = uint(v: now()) - uint(v: v.timeRangeStart)\nbucket = if timeAgoNs <= uint(v: 3h) then \"INIT_BUCKET_NAME\"\n  else if timeAgoNs <= uint(v: 36h) then \"INIT_BUCKET_NAME_1min\"\n  else if timeAgoNs <= uint(v: 7d) then \"INIT_BUCKET_NAME_5min\"\n  else if timeAgoNs <= uint(v: 90d) then \"INIT_BUCKET_NAME_1h\"\n  else if timeAgoNs <= uint(v: 365d) then \"INIT_BUCKET_NAME_4h\"\n  else if timeAgoNs <= uint(v: 2190d) then \"INIT_BUCKET_NAME_1d\"\n  else \"INIT_BUCKET_NAME_1w\"\nisRaw = timeAgoNs <= uint(v: 3h)\n\nrawBase = from(bucket: \"INIT_BUCKET_NAME\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => isRaw)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"net\")\n  |> filter(fn: (r) => r[\"_field\"] == \"bytes_recv\")\n  |> filter(fn: (r) => r[\"interface\"] != \"lo\")\n  |> derivative(unit: 1s, nonNegative: true)\n\nrawMean = rawBase |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false) |> set(key: \"_field\", value: \"net_recv_mean\")\nrawMin  = rawBase |> aggregateWindow(every: v.windowPeriod, fn: min,  createEmpty: false) |> set(key: \"_field\", value: \"net_recv_min\")\nrawMax  = rawBase |> aggregateWindow(every: v.windowPeriod, fn: max,  createEmpty: false) |> set(key: \"_field\", value: \"net_recv_max\")\n\ndsBase = from(bucket: bucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => not isRaw)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"net\")\n  |> filter(fn: (r) => r[\"interface\"] != \"lo\")\n\ndsMean = dsBase |> filter(fn: (r) => r[\"_field\"] == \"bytes_recv_mean\") |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false) |> set(key: \"_field\", value: \"net_recv_mean\")\ndsMin  = dsBase |> filter(fn: (r) => r[\"_field\"] == \"bytes_recv_min\")  |> aggregateWindow(every: v.windowPeriod, fn: min,  createEmpty: false) |> set(key: \"_field\", value: \"net_recv_min\")\ndsMax  = dsBase |> filter(fn: (r) => r[\"_field\"] == \"bytes_recv_max\")  |> aggregateWindow(every: v.windowPeriod, fn: max,  createEmpty: false) |> set(key: \"_field\", value: \"net_recv_max\")\n\nunion(tables: [rawMean, rawMin, rawMax, dsMean, dsMin, dsMax])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "min": 0,
+          "custom": {
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "net_recv_mean" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 2 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "net_recv_max" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 1 },
+              { "id": "custom.fillBelowTo", "value": "net_recv_min" },
+              { "id": "custom.fillOpacity", "value": 20 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "net_recv_min" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 1 }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "title": "Network Transmit (bytes/sec)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "timeAgoNs = uint(v: now()) - uint(v: v.timeRangeStart)\nbucket = if timeAgoNs <= uint(v: 3h) then \"INIT_BUCKET_NAME\"\n  else if timeAgoNs <= uint(v: 36h) then \"INIT_BUCKET_NAME_1min\"\n  else if timeAgoNs <= uint(v: 7d) then \"INIT_BUCKET_NAME_5min\"\n  else if timeAgoNs <= uint(v: 90d) then \"INIT_BUCKET_NAME_1h\"\n  else if timeAgoNs <= uint(v: 365d) then \"INIT_BUCKET_NAME_4h\"\n  else if timeAgoNs <= uint(v: 2190d) then \"INIT_BUCKET_NAME_1d\"\n  else \"INIT_BUCKET_NAME_1w\"\nisRaw = timeAgoNs <= uint(v: 3h)\n\nrawBase = from(bucket: \"INIT_BUCKET_NAME\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => isRaw)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"net\")\n  |> filter(fn: (r) => r[\"_field\"] == \"bytes_sent\")\n  |> filter(fn: (r) => r[\"interface\"] != \"lo\")\n  |> derivative(unit: 1s, nonNegative: true)\n\nrawMean = rawBase |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false) |> set(key: \"_field\", value: \"net_send_mean\")\nrawMin  = rawBase |> aggregateWindow(every: v.windowPeriod, fn: min,  createEmpty: false) |> set(key: \"_field\", value: \"net_send_min\")\nrawMax  = rawBase |> aggregateWindow(every: v.windowPeriod, fn: max,  createEmpty: false) |> set(key: \"_field\", value: \"net_send_max\")\n\ndsBase = from(bucket: bucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => not isRaw)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"net\")\n  |> filter(fn: (r) => r[\"interface\"] != \"lo\")\n\ndsMean = dsBase |> filter(fn: (r) => r[\"_field\"] == \"bytes_sent_mean\") |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false) |> set(key: \"_field\", value: \"net_send_mean\")\ndsMin  = dsBase |> filter(fn: (r) => r[\"_field\"] == \"bytes_sent_min\")  |> aggregateWindow(every: v.windowPeriod, fn: min,  createEmpty: false) |> set(key: \"_field\", value: \"net_send_min\")\ndsMax  = dsBase |> filter(fn: (r) => r[\"_field\"] == \"bytes_sent_max\")  |> aggregateWindow(every: v.windowPeriod, fn: max,  createEmpty: false) |> set(key: \"_field\", value: \"net_send_max\")\n\nunion(tables: [rawMean, rawMin, rawMax, dsMean, dsMin, dsMax])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "min": 0,
+          "custom": {
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "net_send_mean" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 2 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "net_send_max" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 1 },
+              { "id": "custom.fillBelowTo", "value": "net_send_min" },
+              { "id": "custom.fillOpacity", "value": 20 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "net_send_min" },
+            "properties": [
+              { "id": "custom.lineWidth", "value": 1 }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
